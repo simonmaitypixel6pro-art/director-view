@@ -88,11 +88,6 @@ export default function DirectorLoginPage() {
     setCaptchaError("")
     setError("")
 
-    if (!turnstileToken) {
-      setCaptchaError("Please complete the CAPTCHA verification")
-      return
-    }
-
     if (!username || !password) {
       setError("Please enter both username and password")
       return
@@ -122,14 +117,14 @@ export default function DirectorLoginPage() {
         router.push("/director/dashboard")
       } else {
         setError(data.message || "Login failed")
-        if (turnstileWidgetRef.current) {
+        if (turnstileWidgetRef.current && window.turnstile) {
           window.turnstile.reset(turnstileWidgetRef.current)
         }
         setTurnstileToken(null)
       }
     } catch (err: any) {
       setError(err.message || "An error occurred during login")
-      if (turnstileWidgetRef.current) {
+      if (turnstileWidgetRef.current && window.turnstile) {
         window.turnstile.reset(turnstileWidgetRef.current)
       }
       setTurnstileToken(null)
@@ -224,7 +219,7 @@ export default function DirectorLoginPage() {
 
               <Button
                 type="submit"
-                disabled={loading || !turnstileToken}
+                disabled={loading || !username || !password}
                 className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
               >
                 {loading ? "Signing in..." : "Sign In"}

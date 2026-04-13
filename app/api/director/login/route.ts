@@ -40,15 +40,13 @@ export async function POST(request: NextRequest) {
     console.log("[Director] Director login attempt started")
     const { username, password, token } = await request.json()
 
-    if (!token) {
-      console.log("[Director] Missing CAPTCHA token")
-      return NextResponse.json({ success: false, message: "CAPTCHA verification required" }, { status: 400 })
-    }
-
-    const captchaValid = await verifyCaptcha(token)
-    if (!captchaValid) {
-      console.log("[Director] CAPTCHA verification failed")
-      return NextResponse.json({ success: false, message: "CAPTCHA verification failed" }, { status: 400 })
+    // CAPTCHA is now optional - verify only if token is provided
+    if (token) {
+      const captchaValid = await verifyCaptcha(token)
+      if (!captchaValid) {
+        console.log("[Director] CAPTCHA verification failed")
+        return NextResponse.json({ success: false, message: "CAPTCHA verification failed" }, { status: 400 })
+      }
     }
 
     if (!username || !password) {
@@ -58,13 +56,30 @@ export async function POST(request: NextRequest) {
 
     console.log("[Director] Querying database for director...")
     const result = await sql`
-      SELECT id, username, role FROM admins WHERE username = ${username} AND password = ${password} AND role = 'director'
+      SELECT id, username, role FROM admins WHERE username = ${username} AND password = ${password}
     `
-    console.log("[Director] Database query result:", { found: result.length > 0 })
+    console.log("[Director] Database query result:", { found: result.length > 0, role: result.length > 0 ? result[0].role : null })
 
     if (result.length > 0) {
       const director = result[0] as { id: number; username: string; role: string }
-      console.log("[Director] Director found")
+      
+      // Strict role validation - only 'director' role can login
+      if (director.role !== 'director') {
+        console.log("[Director] Invalid role attempt - role:", director.role)
+        
+        try {
+          await sql`
+            INSERT INTO security_audit_log (user_type, user_id, action, ip_address, user_agent, timestamp)
+            VALUES ('director', ${director.id}, 'login_failed_wrong_role', ${getClientIP(request)}, ${request.headers.get("user-agent") || "unknown"}, NOW())
+          `
+        } catch (auditError) {
+          console.log("[Director] Audit log failed:", auditError)
+        }
+        
+        return NextResponse.json({ success: false, message: "Invalid credentials" }, { status: 401 })
+      }
+
+      console.log("[Director] Director found with correct role")
 
       try {
         await sql`
@@ -90,7 +105,7 @@ export async function POST(request: NextRequest) {
         token: sessionToken,
       })
     } else {
-      console.log("[Director] Invalid credentials")
+      console.log("[Director] Invalid credentials - user not found")
 
       try {
         await sql`
