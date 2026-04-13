@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ModeToggle } from "@/components/mode-toggle"
-import { Users, Award, ShieldHalf, GraduationCap, BookOpen, UserCheck, Monitor, Wrench, X, DollarSign } from "lucide-react"
+import { Users, Award, ShieldHalf, GraduationCap, BookOpen, UserCheck, Monitor, Wrench, X, DollarSign, BarChart3 } from "lucide-react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -134,6 +134,7 @@ export default function HomePage() {
   const allRoles = [
     { name: "Student", icon: Users, href: "/student/login" },
     { name: "Admin", icon: Award, href: "/admin/login" },
+    { name: "Director", icon: BarChart3, href: "/director/login" },
     { name: "Personnel", icon: ShieldHalf, href: "/admin-personnel/login" },
     { name: "Accounts", icon: DollarSign, href: "/accounts-personnel/login" },
     { name: "Tutor", icon: Users, href: "/tutor/login" },
